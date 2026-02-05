@@ -5,7 +5,7 @@ pub fn setup_camera(mut commands: Commands) {
 }
 
 pub fn setup_ui(mut commands: Commands) {
-    // Root UI container
+    // Root UI container - TRANSPARENT to show game world
     commands.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
@@ -13,11 +13,11 @@ pub fn setup_ui(mut commands: Commands) {
             flex_direction: FlexDirection::Column,
             ..default()
         },
-        background_color: Color::srgb(0.059, 0.090, 0.165).into(),
+        background_color: Color::NONE.into(), // Changed: transparent
         ..default()
     })
     .with_children(|parent| {
-        // Header
+        // Header bar - opaque
         parent.spawn(NodeBundle {
             style: Style {
                 width: Val::Percent(100.0),
@@ -25,7 +25,7 @@ pub fn setup_ui(mut commands: Commands) {
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
-            background_color: Color::srgb(0.118, 0.161, 0.231).into(),
+            background_color: Color::srgba(0.118, 0.161, 0.231, 0.95).into(), // Slightly transparent
             ..default()
         })
         .with_children(|header| {
@@ -135,6 +135,7 @@ pub fn setup_ui(mut commands: Commands) {
             ));
         });
 
-        // TODO: Main game area and sidebar will be added in future commits
+        // Game area - transparent, allows clicks through to tilemap
+        // Future: add sidebars here
     });
 }
