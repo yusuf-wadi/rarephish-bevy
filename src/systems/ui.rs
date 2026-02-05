@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::ecs::system::ParamSet;
 use crate::components::*;
 use crate::resources::{GameState, WorldSeed, SelectedUncle};
 
@@ -54,22 +55,29 @@ pub fn update_ui_system(
 
 /// Handles uncle type selection button clicks with visual feedback
 pub fn handle_uncle_selection(
-    mut interaction_q: Query<(&Interaction, &UncleSelectButton, &mut BorderColor), Changed<Interaction>>,
-    mut all_buttons: Query<(&UncleSelectButton, &mut BorderColor)>,
+    interaction_q: Query<(&Interaction, &UncleSelectButton), Changed<Interaction>>,
+    mut button_query: ParamSet<(
+        Query<(&UncleSelectButton, &mut BorderColor)>,
+    )>,
     mut selected_uncle: ResMut<SelectedUncle>,
 ) {
-    for (interaction, button, mut border) in interaction_q.iter_mut() {
+    // Check for interactions first
+    let mut selected_type: Option<UncleType> = None;
+    for (interaction, button) in interaction_q.iter() {
         if *interaction == Interaction::Pressed {
-            // Update selected uncle
+            selected_type = Some(button.uncle_type);
             selected_uncle.uncle_type = button.uncle_type;
+            break;
+        }
+    }
 
-            // Update all button borders
-            for (other_button, mut other_border) in all_buttons.iter_mut() {
-                if other_button.uncle_type == button.uncle_type {
-                    *other_border = Color::srgb(0.13, 0.77, 0.37).into();
-                } else {
-                    *other_border = Color::NONE.into();
-                }
+    // Update borders if selection changed
+    if let Some(selected) = selected_type {
+        for (button, mut border) in button_query.p0().iter_mut() {
+            if button.uncle_type == selected {
+                *border = Color::srgb(0.13, 0.77, 0.37).into();
+            } else {
+                *border = Color::NONE.into();
             }
         }
     }
