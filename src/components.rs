@@ -47,11 +47,41 @@ impl UncleType {
         }
     }
 
-    pub fn sprite(&self) -> &'static str {
+    /// Asset path for uncle sprite
+    /// Return None to use fallback colored square + letter
+    /// Return Some("path/to/sprite.png") to load from assets folder
+    pub fn asset_path(&self) -> Option<&'static str> {
         match self {
-            UncleType::Mongolian => "🧔",
-            UncleType::Somali => "👴🏿",
-            UncleType::Japanese => "👴",
+            UncleType::Mongolian => None, // Future: Some("sprites/mongolian_uncle.png")
+            UncleType::Somali => None,    // Future: Some("sprites/somali_uncle.png")
+            UncleType::Japanese => None,  // Future: Some("sprites/japanese_uncle.png")
+        }
+    }
+
+    /// Fallback letter identifier when no asset is available
+    pub fn letter(&self) -> &'static str {
+        match self {
+            UncleType::Mongolian => "M",
+            UncleType::Somali => "S",
+            UncleType::Japanese => "J",
+        }
+    }
+
+    /// Fallback color for colored square when no asset is available
+    pub fn color(&self) -> Color {
+        match self {
+            UncleType::Mongolian => Color::srgb(0.824, 0.706, 0.549), // Sandy brown
+            UncleType::Somali => Color::srgb(0.247, 0.596, 0.757),    // Ocean blue
+            UncleType::Japanese => Color::srgb(0.969, 0.706, 0.788),  // Cherry blossom pink
+        }
+    }
+
+    /// Emoji representation (for UI display only, not world sprites)
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            UncleType::Mongolian => "🏜️",
+            UncleType::Somali => "🌊",
+            UncleType::Japanese => "🗾",
         }
     }
 
@@ -65,9 +95,17 @@ impl UncleType {
 
     pub fn ability(&self) -> &'static str {
         match self {
-            UncleType::Mongolian => "basic",
-            UncleType::Somali => "fast",
-            UncleType::Japanese => "rare finder",
+            UncleType::Mongolian => "Basic",
+            UncleType::Somali => "Fast",
+            UncleType::Japanese => "Rare Finder",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            UncleType::Mongolian => "Steady and reliable fisherman",
+            UncleType::Somali => "Quick catches, fast turnaround",
+            UncleType::Japanese => "Higher chance for rare fish",
         }
     }
 
@@ -128,6 +166,12 @@ pub struct MultiplierText;
 pub struct SeedText;
 
 #[derive(Component)]
+pub struct CooldownText;
+
+#[derive(Component)]
+pub struct CatchValueText;
+
+#[derive(Component)]
 pub struct CashOutButton;
 
 #[derive(Component)]
@@ -137,3 +181,9 @@ pub struct NewWorldButton;
 pub struct UncleSelectButton {
     pub uncle_type: UncleType,
 }
+
+#[derive(Component)]
+pub struct FishFeedContainer;
+
+#[derive(Component)]
+pub struct FishFeedEntry;
