@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use rand::Rng;
-use crate::components::{Tile, TileType, Uncle, UncleType, FishRarity};
+use crate::components::{Tile, TileType, Uncle, UncleType, FishRarity, Fish};
 use crate::constants::*;
-use crate::resources::{GameState, WorldSeed, SelectedUncle, CaughtFish};
+use crate::resources::{GameState, WorldSeed, SelectedUncle};
 
 /// Helper function to check if a tile position is near water
 fn is_tile_near_water(x: usize, y: usize, tiles_q: &Query<(Entity, &Tile, &Transform)>) -> bool {
@@ -222,31 +222,50 @@ fn generate_fish(
         FishRarity::Rare => rng.gen_range(RARE_VALUE_MIN..=RARE_VALUE_MAX),
     };
 
-    // Store for potential escape check
-    game_state.current_catch.push(CaughtFish {
+    // Create fish with physics-based escape state
+    let fish = Fish {
         name,
         rarity,
         value,
-    });
+        time_alive: 0.0,
+        failed_escape_attempts: 0,
+        caught_by_uncle: uncle_type,
+    };
+
+    game_state.current_catch.push(fish);
 }
 
-/// Checks if caught fish escape based on rarity-specific chances
+/// Physics-based fish escape system using biased random walk model
+/// Models fish flopping with metabolic phases and decreasing success per failed attempt
 pub fn fish_escape_system(
     mut game_state: ResMut<GameState>,
     mut world_seed: ResMut<WorldSeed>,
+    time: Res<Time>,
 ) {
     let rng = &mut world_seed.rng;
+    let delta = time.delta_seconds();
     let mut escaped_indices = Vec::new();
 
-    for (i, fish) in game_state.current_catch.iter().enumerate() {
-        let escape_chance = match fish.rarity {
-            FishRarity::Common => COMMON_ESCAPE,
-            FishRarity::Uncommon => UNCOMMON_ESCAPE,
-            FishRarity::Rare => RARE_ESCAPE,
-        };
+    // Update each fish's time and check for escape
+    for (i, fish) in game_state.current_catch.iter_mut().enumerate() {
+        // Update time alive
+        fish.time_alive += delta;
 
-        if rng.gen::<f32>() < escape_chance {
+        // Calculate escape chance using biased random walk model
+        let escape_chance_per_second = fish.calculate_escape_chance();
+        
+        // Convert per-second probability to per-frame probability
+        // Using: P(frame) = 1 - (1 - P(second))^(delta)
+        // Approximation for small probabilities: P(frame) ≈ P(second) * delta
+        let escape_chance_this_frame = escape_chance_per_second * delta;
+
+        // Roll for escape
+        if rng.gen::<f32>() < escape_chance_this_frame {
+            // Fish successfully escapes!
             escaped_indices.push(i);
+        } else {
+            // Failed escape attempt - fish moved wrong direction or fatigued
+            fish.failed_escape_attempts += 1;
         }
     }
 
