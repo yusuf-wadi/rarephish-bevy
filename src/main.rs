@@ -25,15 +25,22 @@ fn main() {
         // Startup systems
         .add_systems(Startup, (setup::setup_camera, setup::setup_ui))
         .add_systems(Startup, tilemap::generate_tilemap)
-        // Update systems
+        // Update systems - Gameplay
         .add_systems(Update, (
             gameplay::handle_uncle_placement,
             gameplay::uncle_fishing_system,
             gameplay::fish_escape_system,
             gameplay::cash_out_system,
             gameplay::cooldown_update_system,
+        ))
+        // Update systems - UI
+        .add_systems(Update, (
             ui::update_ui_system,
+            ui::update_fish_feed,
             ui::handle_uncle_selection,
+            ui::handle_cash_out_button,
+            ui::cash_out_button_visual,
+            ui::uncle_button_visual,
             ui::handle_new_world,
         ))
         .run();
