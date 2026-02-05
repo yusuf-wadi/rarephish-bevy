@@ -17,10 +17,10 @@ pub const RARE_CHANCE: f32 = 0.05;      // 5%
 pub const UNCOMMON_CHANCE: f32 = 0.20;  // 20%
 // Common is remainder: 75%
 
-// Fish escape chances by rarity
-pub const COMMON_ESCAPE: f32 = 0.05;     // 5%
-pub const UNCOMMON_ESCAPE: f32 = 0.20;   // 20%
-pub const RARE_ESCAPE: f32 = 0.40;       // 40%
+// Fish escape chances by rarity (per-frame check)
+pub const COMMON_ESCAPE: f32 = 0.01;     // 1% (was 5%)
+pub const UNCOMMON_ESCAPE: f32 = 0.05;   // 5% (was 20%)
+pub const RARE_ESCAPE: f32 = 0.15;       // 15% (was 40%)
 
 // Fish value ranges
 pub const COMMON_VALUE_MIN: u32 = 1;
