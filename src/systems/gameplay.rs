@@ -29,6 +29,75 @@ fn is_tile_near_water(x: usize, y: usize, tiles_q: &Query<(Entity, &Tile, &Trans
     false
 }
 
+/// Spawns an uncle entity at a given position with sprite support
+fn spawn_uncle(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    uncle_type: UncleType,
+    world_x: f32,
+    world_y: f32,
+    tile_x: usize,
+    tile_y: usize,
+) {
+    let speed_ms = uncle_type.speed_ms();
+    let uncle = Uncle {
+        uncle_type,
+        x: tile_x,
+        y: tile_y,
+        fishing_timer: Timer::from_seconds(
+            speed_ms as f32 / 1000.0,
+            TimerMode::Repeating,
+        ),
+    };
+
+    // Check if we have an asset path, otherwise use fallback
+    if let Some(asset_path) = uncle_type.asset_path() {
+        // Load sprite from assets folder
+        commands.spawn((
+            uncle,
+            SpriteBundle {
+                texture: asset_server.load(asset_path),
+                transform: Transform::from_xyz(world_x, world_y, 2.0),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(UNCLE_SPRITE_SIZE, UNCLE_SPRITE_SIZE)),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+    } else {
+        // Fallback: colored square with letter overlay
+        let uncle_entity = commands.spawn((
+            uncle,
+            SpriteBundle {
+                sprite: Sprite {
+                    color: uncle_type.color(),
+                    custom_size: Some(Vec2::new(UNCLE_SPRITE_SIZE, UNCLE_SPRITE_SIZE)),
+                    ..default()
+                },
+                transform: Transform::from_xyz(world_x, world_y, 2.0),
+                ..default()
+            },
+        )).id();
+
+        // Add letter text as child entity
+        commands.entity(uncle_entity).with_children(|parent| {
+            parent.spawn(Text2dBundle {
+                text: Text::from_section(
+                    uncle_type.letter(),
+                    TextStyle {
+                        font_size: 24.0,
+                        color: Color::srgb(0.1, 0.1, 0.15),
+                        ..default()
+                    },
+                ),
+                transform: Transform::from_xyz(0.0, 0.0, 0.1),
+                ..default()
+            });
+        });
+    }
+}
+
 /// Handles mouse clicks for placing uncles on tiles
 pub fn handle_uncle_placement(
     mouse_button: Res<ButtonInput<MouseButton>>,
@@ -37,6 +106,7 @@ pub fn handle_uncle_placement(
     tiles_q: Query<(Entity, &Tile, &Transform)>,
     uncles_q: Query<&Uncle>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut game_state: ResMut<GameState>,
     selected_uncle: Res<SelectedUncle>,
 ) {
@@ -84,35 +154,15 @@ pub fn handle_uncle_placement(
 
                     // Place uncle
                     game_state.gold -= cost;
-
-                    let speed_ms = selected_uncle.uncle_type.speed_ms();
-                    commands.spawn((
-                        Uncle {
-                            uncle_type: selected_uncle.uncle_type,
-                            x: tile.x,
-                            y: tile.y,
-                            fishing_timer: Timer::from_seconds(
-                                speed_ms as f32 / 1000.0,
-                                TimerMode::Repeating,
-                            ),
-                        },
-                        Text2dBundle {
-                            text: Text::from_section(
-                                selected_uncle.uncle_type.sprite(),
-                                TextStyle {
-                                    font_size: 30.0,
-                                    color: Color::WHITE,
-                                    ..default()
-                                },
-                            ),
-                            transform: Transform::from_xyz(
-                                tile_transform.translation.x,
-                                tile_transform.translation.y,
-                                1.0,
-                            ),
-                            ..default()
-                        },
-                    ));
+                    spawn_uncle(
+                        &mut commands,
+                        &asset_server,
+                        selected_uncle.uncle_type,
+                        tile_transform.translation.x,
+                        tile_transform.translation.y,
+                        tile.x,
+                        tile.y,
+                    );
 
                     return;
                 }
