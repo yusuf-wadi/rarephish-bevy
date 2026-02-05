@@ -4,7 +4,30 @@ use rand::Rng;
 use crate::components::{Tile, TileType, Uncle, UncleType, FishRarity};
 use crate::constants::*;
 use crate::resources::{GameState, WorldSeed, SelectedUncle, CaughtFish};
-use crate::systems::tilemap::is_near_water;
+
+/// Helper function to check if a tile position is near water
+fn is_tile_near_water(x: usize, y: usize, tiles_q: &Query<(Entity, &Tile, &Transform)>) -> bool {
+    let directions = [
+        (-1i32, -1i32), (0, -1), (1, -1),
+        (-1, 0),                 (1, 0),
+        (-1, 1),        (0, 1),  (1, 1),
+    ];
+
+    for (dx, dy) in directions {
+        let check_x = x as i32 + dx;
+        let check_y = y as i32 + dy;
+
+        if check_x >= 0 && check_x < TILE_WIDTH as i32 && check_y >= 0 && check_y < TILE_HEIGHT as i32 {
+            for (_entity, tile, _transform) in tiles_q.iter() {
+                if tile.x == check_x as usize && tile.y == check_y as usize && tile.tile_type == TileType::Water {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
 
 /// Handles mouse clicks for placing uncles on tiles
 pub fn handle_uncle_placement(
@@ -26,9 +49,9 @@ pub fn handle_uncle_placement(
 
     if let Some(cursor_position) = window.cursor_position() {
         // Convert screen position to world position
-        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
+        if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
             // Find clicked tile
-            for (tile_entity, tile, tile_transform) in tiles_q.iter() {
+            for (_tile_entity, tile, tile_transform) in tiles_q.iter() {
                 let tile_pos = tile_transform.translation.truncate();
                 let half_size = TILE_SIZE / 2.0;
 
@@ -49,7 +72,7 @@ pub fn handle_uncle_placement(
                     }
 
                     // Check if near water
-                    if !is_near_water(tile.x, tile.y, &tiles_q) {
+                    if !is_tile_near_water(tile.x, tile.y, &tiles_q) {
                         return;
                     }
 
@@ -121,7 +144,7 @@ fn generate_fish(
     world_seed: &mut WorldSeed,
     uncle_type: UncleType,
 ) {
-    let mut rng = &mut world_seed.rng;
+    let rng = &mut world_seed.rng;
 
     // Determine rarity with uncle bonus
     let rare_threshold = RARE_CHANCE + uncle_type.rare_bonus();
@@ -162,7 +185,7 @@ pub fn fish_escape_system(
     mut game_state: ResMut<GameState>,
     mut world_seed: ResMut<WorldSeed>,
 ) {
-    let mut rng = &mut world_seed.rng;
+    let rng = &mut world_seed.rng;
     let mut escaped_indices = Vec::new();
 
     for (i, fish) in game_state.current_catch.iter().enumerate() {
