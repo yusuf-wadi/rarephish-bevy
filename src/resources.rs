@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use crate::components::{UncleType, FishRarity};
+use crate::components::{UncleType, Fish};
 
 /// Global game state resource
 #[derive(Resource)]
 pub struct GameState {
     pub fish_count: u32,
     pub gold: u32,
-    pub current_catch: Vec<CaughtFish>,
+    pub current_catch: Vec<Fish>,  // Changed from CaughtFish to Fish
     pub multiplier: f32,
     pub cash_out_cooldown: f32,
 }
@@ -23,13 +23,6 @@ impl Default for GameState {
             cash_out_cooldown: 0.0,
         }
     }
-}
-
-#[derive(Clone)]
-pub struct CaughtFish {
-    pub name: String,
-    pub rarity: FishRarity,
-    pub value: u32,
 }
 
 /// World seed resource for procedural generation
