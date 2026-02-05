@@ -17,10 +17,34 @@ pub const RARE_CHANCE: f32 = 0.05;      // 5%
 pub const UNCOMMON_CHANCE: f32 = 0.20;  // 20%
 // Common is remainder: 75%
 
-// Fish escape chances by rarity (per-frame check)
-pub const COMMON_ESCAPE: f32 = 0.01;     // 1% (was 5%)
-pub const UNCOMMON_ESCAPE: f32 = 0.05;   // 5% (was 20%)
-pub const RARE_ESCAPE: f32 = 0.15;       // 15% (was 40%)
+// === Fish Escape Physics Model ===
+// Based on biased random walk research for fish flopping mechanics
+
+// Metabolic Phases (time-based)
+pub const BURST_PHASE_DURATION: f32 = 10.0;      // 0-10 seconds: high intensity
+pub const STOCHASTIC_PHASE_DURATION: f32 = 20.0; // 10-30 seconds: lactic buildup
+pub const FATIGUE_PHASE_START: f32 = 30.0;       // 30+ seconds: exhaustion
+
+// Base escape probabilities per phase (per second, not per frame)
+// These represent "flop frequency" × "success chance per flop"
+pub const BURST_ESCAPE_BASE: f32 = 0.15;       // 15% per second (3-5 Hz flops)
+pub const STOCHASTIC_ESCAPE_BASE: f32 = 0.08;  // 8% per second (1-2 Hz flops)
+pub const FATIGUE_ESCAPE_BASE: f32 = 0.02;     // 2% per second (<0.5 Hz flops)
+
+// Escape reduction per failed attempt (represents building "distance to safety")
+// Each failed flop moves fish slightly away or at wrong angle
+pub const ESCAPE_REDUCTION_PER_FAIL: f32 = 0.02; // -2% per failed attempt
+pub const MIN_ESCAPE_CHANCE: f32 = 0.001;        // Never goes below 0.1%
+
+// Rarity modifiers (rarer fish are stronger/more desperate)
+pub const COMMON_ESCAPE_MULTIPLIER: f32 = 0.6;    // 60% of base
+pub const UNCOMMON_ESCAPE_MULTIPLIER: f32 = 1.0;  // 100% of base  
+pub const RARE_ESCAPE_MULTIPLIER: f32 = 1.4;      // 140% of base (more vigorous)
+
+// Uncle retention abilities (reduce escape chance)
+pub const MONGOLIAN_RETENTION: f32 = 1.0;  // No bonus (base)
+pub const SOMALI_RETENTION: f32 = 0.9;     // 10% better retention (faster response)
+pub const JAPANESE_RETENTION: f32 = 1.1;   // 10% worse (focused on rarity, not retention)
 
 // Fish value ranges
 pub const COMMON_VALUE_MIN: u32 = 1;
