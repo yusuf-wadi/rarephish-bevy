@@ -3,6 +3,9 @@ pub const TILE_WIDTH: usize = 16;
 pub const TILE_HEIGHT: usize = 12;
 pub const TILE_SIZE: f32 = 40.0;
 
+// Uncle sprite dimensions
+pub const UNCLE_SPRITE_SIZE: f32 = 32.0;
+
 // Game balance
 pub const STARTING_GOLD: u32 = 100;
 pub const CASH_OUT_COOLDOWN: f32 = 30.0; // seconds
