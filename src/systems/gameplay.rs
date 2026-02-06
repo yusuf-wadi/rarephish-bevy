@@ -279,6 +279,35 @@ pub fn fish_escape_system(
     }
 }
 
+/// Remove lowest value fish from selected uncle's basket (R key)
+/// Strategic use: free up space for potentially better fish
+pub fn remove_fish_from_basket(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut uncles_q: Query<&mut Uncle, With<SelectedUncleMarker>>,
+) {
+    if !keyboard.just_pressed(KeyCode::KeyR) {
+        return;
+    }
+
+    for mut uncle in uncles_q.iter_mut() {
+        if uncle.basket.fish.is_empty() {
+            continue;
+        }
+
+        // Find lowest value fish
+        let lowest_idx = uncle.basket.fish
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, fish)| fish.value)
+            .map(|(idx, _)| idx);
+
+        if let Some(idx) = lowest_idx {
+            let removed = uncle.basket.fish.remove(idx);
+            println!("🗑️ Removed {} ({}g) to make space", removed.name, removed.value);
+        }
+    }
+}
+
 /// Day/Night cycle system - progresses time and triggers new days
 pub fn day_night_cycle_system(
     mut day_night: ResMut<DayNightCycle>,
@@ -293,17 +322,18 @@ pub fn day_night_cycle_system(
     if day_night.time_elapsed >= DAY_LENGTH_SECONDS {
         day_night.time_elapsed = 0.0;
         day_night.new_day();
+        println!("☀️ Day {} begins! Cash-outs refreshed: {}", day_night.day_number, day_night.cashouts_remaining);
     }
 
     // Update day/night state
     let was_day = day_night.is_day;
     day_night.is_day = day_night.is_daytime();
 
-    // Transition events (for future sound/visual effects)
+    // Transition events
     if !was_day && day_night.is_day {
-        // Sunrise!
+        println!("🌅 Dawn - daytime begins");
     } else if was_day && !day_night.is_day {
-        // Sunset!
+        println!("🌆 Dusk - nighttime begins");
     }
 }
 
@@ -325,6 +355,7 @@ pub fn cash_out_selected_uncle(
 
     // Check daily limit
     if day_night.cashouts_remaining == 0 {
+        println!("❌ No cash-outs remaining! Wait for day {} ({})", day_night.day_number + 1, day_night.time_string());
         return;
     }
 
@@ -345,7 +376,10 @@ pub fn cash_out_selected_uncle(
         game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
         game_state.cash_out_cooldown = CASHOUT_COOLDOWN_SECONDS;
         day_night.cashouts_remaining -= 1;
-        break; // Only cash out one uncle
+        
+        println!("💰 Cashed out {} fish for {}g! Remaining: {}/{}", 
+                 fish_count, gold_earned, day_night.cashouts_remaining, day_night.max_cashouts_per_day);
+        break;
     }
 }
 
@@ -368,6 +402,7 @@ pub fn cash_out_all_uncles(
 
     // Check daily limit
     if day_night.cashouts_remaining == 0 {
+        println!("❌ No cash-outs remaining! Wait for day {} ({})", day_night.day_number + 1, day_night.time_string());
         return;
     }
 
@@ -390,6 +425,9 @@ pub fn cash_out_all_uncles(
         game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
         game_state.cash_out_cooldown = CASHOUT_COOLDOWN_SECONDS;
         day_night.cashouts_remaining -= 1;
+        
+        println!("💰 Cashed out ALL: {} fish for {}g! Remaining: {}/{}", 
+                 total_fish, gold_earned, day_night.cashouts_remaining, day_night.max_cashouts_per_day);
     }
 }
 
