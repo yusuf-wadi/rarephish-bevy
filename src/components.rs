@@ -62,6 +62,14 @@ impl UncleBasket {
         self.fish.iter().map(|f| f.value).sum()
     }
 
+    pub fn remove_fish(&mut self, index: usize) -> Option<Fish> {
+        if index < self.fish.len() {
+            Some(self.fish.remove(index))
+        } else {
+            None
+        }
+    }
+
     pub fn cash_out(&mut self) -> Vec<Fish> {
         std::mem::take(&mut self.fish)
     }
@@ -295,3 +303,19 @@ pub struct FishFeedEntry;
 
 #[derive(Component)]
 pub struct UncleBasketDisplay;
+
+// Day/Night cycle UI markers
+#[derive(Component)]
+pub struct DayNumberText;
+
+#[derive(Component)]
+pub struct TimeOfDayText;
+
+#[derive(Component)]
+pub struct CashoutsRemainingText;
+
+// Fish removal button (stores index of fish to remove)
+#[derive(Component)]
+pub struct RemoveFishButton {
+    pub fish_index: usize,
+}
