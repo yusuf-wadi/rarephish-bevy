@@ -95,6 +95,15 @@ impl UncleType {
         }
     }
 
+    /// Basket capacity - trade-off with other stats
+    pub fn basket_capacity(&self) -> usize {
+        match self {
+            UncleType::Mongolian => 5,   // Small basket, best retention
+            UncleType::Somali => 8,      // Medium basket, fast speed
+            UncleType::Japanese => 12,   // Large basket, rare finder
+        }
+    }
+
     /// Asset path for uncle sprite
     pub fn asset_path(&self) -> Option<&'static str> {
         match self {
@@ -161,9 +170,9 @@ impl UncleType {
 
     pub fn retention_multiplier(&self) -> f32 {
         match self {
-            UncleType::Mongolian => constants::MONGOLIAN_RETENTION,  // 30% better retention
-            UncleType::Somali => constants::SOMALI_RETENTION,    // 15% better retention
-            UncleType::Japanese => constants::JAPANESE_RETENTION,   // 20% worse retention
+            UncleType::Mongolian => constants::MONGOLIAN_RETENTION,
+            UncleType::Somali => constants::SOMALI_RETENTION,
+            UncleType::Japanese => constants::JAPANESE_RETENTION,
         }
     }
 }
