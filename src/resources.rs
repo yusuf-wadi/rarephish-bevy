@@ -63,23 +63,36 @@ impl DayNightCycle {
         format!("{:02}:{:02} {}", display_hour, minutes, period)
     }
 
+    /// Returns text description of current time of day (no emojis)
+    pub fn time_of_day_text(&self) -> &'static str {
+        if self.day_progress < 0.25 {       // Midnight to 6 AM
+            "Night"
+        } else if self.day_progress < 0.5 {  // 6 AM to Noon
+            "Morning"
+        } else if self.day_progress < 0.75 { // Noon to 6 PM
+            "Afternoon"
+        } else {                             // 6 PM to Midnight
+            "Evening"
+        }
+    }
+
+    /// Returns color for current time of day
+    pub fn time_of_day_color(&self) -> Color {
+        if self.day_progress < 0.25 {       // Night
+            Color::srgb(0.4, 0.5, 0.8)
+        } else if self.day_progress < 0.5 {  // Morning
+            Color::srgb(1.0, 0.8, 0.4)
+        } else if self.day_progress < 0.75 { // Afternoon
+            Color::srgb(1.0, 0.95, 0.5)
+        } else {                             // Evening
+            Color::srgb(0.9, 0.6, 0.4)
+        }
+    }
+
     /// Resets cash-outs for new day
     pub fn new_day(&mut self) {
         self.day_number += 1;
         self.cashouts_remaining = self.max_cashouts_per_day;
-    }
-
-    /// Returns emoji for current time of day
-    pub fn time_emoji(&self) -> &'static str {
-        if self.day_progress < 0.25 {       // Midnight to 6 AM
-            "🌙"
-        } else if self.day_progress < 0.5 {  // 6 AM to Noon
-            "🌅"
-        } else if self.day_progress < 0.75 { // Noon to 6 PM
-            "☀️"
-        } else {                             // 6 PM to Midnight
-            "🌆"
-        }
     }
 }
 
