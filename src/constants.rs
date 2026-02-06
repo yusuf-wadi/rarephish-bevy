@@ -17,8 +17,8 @@ pub const DAY_START_TIME: f32 = 0.25;       // Day starts at 25% (6 AM equivalen
 pub const NIGHT_START_TIME: f32 = 0.75;     // Night starts at 75% (6 PM equivalent)
 
 // Cash-out economy
-pub const STARTING_CASHOUTS_PER_DAY: u32 = 1;  // Begin with only 1 cash-out per day
-pub const CASHOUT_COOLDOWN_SECONDS: f32 = 5.0; // Small cooldown between cashouts (prevents spam)
+pub const STARTING_CASHOUTS_PER_DAY: u32 = 1;      // Begin with only 1 cash-out per day
+pub const CASHOUT_COOLDOWN_SECONDS: f32 = 5.0;     // Small cooldown between cashouts (prevents spam)
 
 // Fish rarity probabilities (before bonuses)
 pub const RARE_CHANCE: f32 = 0.05;      // 5%
@@ -68,10 +68,10 @@ pub const FISH_PATTERNS: &[&str] = &["Striped", "Spotted", "Solid", "Marbled", "
 pub const FISH_SIZES: &[&str] = &["Tiny", "Small", "Medium", "Large", "Huge"];
 pub const FISH_SHAPES: &[&str] = &["Slim", "Round", "Flat", "Long", "Bulky"];
 
-// Uncle costs (also in components.rs, but here for reference)
-pub const MONGOLIAN_COST: u32 = 100;
-pub const SOMALI_COST: u32 = 300;
-pub const JAPANESE_COST: u32 = 500;
+// Uncle costs
+pub const MONGOLIAN_COST: u32 = 50;
+pub const SOMALI_COST: u32 = 150;
+pub const JAPANESE_COST: u32 = 300;
 
 // World generation
 pub const WATER_THRESHOLD: f32 = 0.3;
