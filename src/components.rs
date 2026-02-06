@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::constants;
+
 /// Marker component for tile entities
 #[derive(Component)]
 pub struct Tile {
@@ -41,9 +43,9 @@ impl UncleType {
 
     pub fn cost(&self) -> u32 {
         match self {
-            UncleType::Mongolian => 50,
-            UncleType::Somali => 150,
-            UncleType::Japanese => 300,
+            UncleType::Mongolian => constants::MONGOLIAN_COST,
+            UncleType::Somali => constants::SOMALI_COST,
+            UncleType::Japanese => constants::JAPANESE_COST,
         }
     }
 
@@ -119,9 +121,9 @@ impl UncleType {
     /// Fish retention multiplier (lower = better at keeping fish)
     pub fn retention_multiplier(&self) -> f32 {
         match self {
-            UncleType::Mongolian => 0.7,  // 30% better retention
-            UncleType::Somali => 0.85,    // 15% better retention
-            UncleType::Japanese => 1.2,   // 20% worse retention
+            UncleType::Mongolian => constants::MONGOLIAN_RETENTION,  // 30% better retention
+            UncleType::Somali => constants::SOMALI_RETENTION,    // 15% better retention
+            UncleType::Japanese => constants::JAPANESE_RETENTION,   // 20% worse retention
         }
     }
 }
