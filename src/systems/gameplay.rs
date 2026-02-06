@@ -315,9 +315,15 @@ pub fn cash_out_selected_uncle(
 
 /// Cash out ALL uncles at once
 pub fn cash_out_all_uncles(
+    keyboard: Res<ButtonInput<KeyCode>>,
     mut uncles_q: Query<&mut Uncle>,
     mut game_state: ResMut<GameState>,
 ) {
+    // Must press A key to trigger
+    if !keyboard.just_pressed(KeyCode::KeyA) {
+        return;
+    }
+
     if game_state.cash_out_cooldown > 0.0 {
         return;
     }
