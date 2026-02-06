@@ -184,7 +184,7 @@ pub fn setup_ui(mut commands: Commands) {
             .with_children(|sidebar| {
                 // Title
                 sidebar.spawn(TextBundle::from_section(
-                    "UNCLES",
+                    "UNCLE TYPES",
                     TextStyle {
                         font_size: 16.0,
                         color: Color::srgb(0.796, 0.835, 0.882),
@@ -196,6 +196,25 @@ pub fn setup_ui(mut commands: Commands) {
                 for uncle_type in [UncleType::Mongolian, UncleType::Somali, UncleType::Japanese] {
                     spawn_uncle_card(sidebar, uncle_type);
                 }
+
+                // Spacer
+                sidebar.spawn(NodeBundle {
+                    style: Style {
+                        height: Val::Px(20.0),
+                        ..default()
+                    },
+                    ..default()
+                });
+
+                // Instructions
+                sidebar.spawn(TextBundle::from_section(
+                    "Click to select type\nRight-click uncle in world to view basket",
+                    TextStyle {
+                        font_size: 11.0,
+                        color: Color::srgb(0.6, 0.65, 0.7),
+                        ..default()
+                    },
+                ));
             });
 
             // === CENTER - Game World ===
@@ -211,7 +230,7 @@ pub fn setup_ui(mut commands: Commands) {
                 ..default()
             });
 
-            // === RIGHT SIDEBAR - Fish Feed ===
+            // === RIGHT SIDEBAR - Uncle Basket Display ===
             main_area.spawn(NodeBundle {
                 style: Style {
                     width: Val::Percent(20.0),
@@ -226,7 +245,7 @@ pub fn setup_ui(mut commands: Commands) {
             .with_children(|sidebar| {
                 // Title
                 sidebar.spawn(TextBundle::from_section(
-                    "RECENT CATCHES",
+                    "UNCLE BASKET",
                     TextStyle {
                         font_size: 16.0,
                         color: Color::srgb(0.796, 0.835, 0.882),
@@ -234,7 +253,7 @@ pub fn setup_ui(mut commands: Commands) {
                     },
                 ));
 
-                // Fish feed container (scrollable list)
+                // Basket display container (updates based on selection)
                 sidebar.spawn((
                     NodeBundle {
                         style: Style {
@@ -242,14 +261,14 @@ pub fn setup_ui(mut commands: Commands) {
                             height: Val::Percent(60.0),
                             flex_direction: FlexDirection::Column,
                             row_gap: Val::Px(5.0),
-                            padding: UiRect::all(Val::Px(5.0)),
+                            padding: UiRect::all(Val::Px(10.0)),
                             overflow: Overflow::clip_y(),
                             ..default()
                         },
                         background_color: Color::srgba(0.059, 0.090, 0.165, 0.5).into(),
                         ..default()
                     },
-                    FishFeedContainer,
+                    UncleBasketDisplay,
                 ));
 
                 // Spacer
@@ -284,7 +303,7 @@ pub fn setup_ui(mut commands: Commands) {
                     })
                     .with_children(|row| {
                         row.spawn(TextBundle::from_section(
-                            "Catch Value:",
+                            "Basket Value:",
                             TextStyle {
                                 font_size: 14.0,
                                 color: Color::srgb(0.796, 0.835, 0.882),
@@ -317,7 +336,7 @@ pub fn setup_ui(mut commands: Commands) {
                         CooldownText,
                     ));
 
-                    // Cash out button
+                    // Cash out selected button
                     cashout.spawn((
                         ButtonBundle {
                             style: Style {
@@ -334,9 +353,35 @@ pub fn setup_ui(mut commands: Commands) {
                     ))
                     .with_children(|button| {
                         button.spawn(TextBundle::from_section(
-                            "CASH OUT",
+                            "CASH OUT SELECTED",
                             TextStyle {
-                                font_size: 16.0,
+                                font_size: 14.0,
+                                color: Color::srgb(0.945, 0.961, 0.973),
+                                ..default()
+                            },
+                        ));
+                    });
+
+                    // Cash out all button
+                    cashout.spawn((
+                        ButtonBundle {
+                            style: Style {
+                                width: Val::Percent(100.0),
+                                height: Val::Px(40.0),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                            background_color: Color::srgb(0.247, 0.596, 0.757).into(),
+                            ..default()
+                        },
+                        CashOutAllButton,
+                    ))
+                    .with_children(|button| {
+                        button.spawn(TextBundle::from_section(
+                            "CASH OUT ALL",
+                            TextStyle {
+                                font_size: 14.0,
                                 color: Color::srgb(0.945, 0.961, 0.973),
                                 ..default()
                             },
@@ -345,7 +390,7 @@ pub fn setup_ui(mut commands: Commands) {
 
                     // Instructions
                     cashout.spawn(TextBundle::from_section(
-                        "Press SPACE or click button",
+                        "SPACE = Selected\nA = All Uncles",
                         TextStyle {
                             font_size: 11.0,
                             color: Color::srgb(0.6, 0.65, 0.7),
@@ -410,17 +455,22 @@ fn spawn_uncle_card(parent: &mut ChildBuilder, uncle_type: UncleType) {
         card.spawn(TextBundle::from_section(
             uncle_type.name(),
             TextStyle {
-                font_size: 14.0,
+                font_size: 13.0,
                 color: Color::srgb(0.945, 0.961, 0.973),
                 ..default()
             },
         ));
 
-        // Cost and speed
+        // Stats
         card.spawn(TextBundle::from_section(
-            format!("{} gold • {:.1}s", uncle_type.cost(), uncle_type.speed_ms() as f32 / 1000.0),
+            format!(
+                "{} gold • {:.1}s\nBasket: {} fish",
+                uncle_type.cost(),
+                uncle_type.speed_ms() as f32 / 1000.0,
+                uncle_type.basket_capacity()
+            ),
             TextStyle {
-                font_size: 12.0,
+                font_size: 11.0,
                 color: Color::srgb(0.984, 0.749, 0.141),
                 ..default()
             },
@@ -430,7 +480,7 @@ fn spawn_uncle_card(parent: &mut ChildBuilder, uncle_type: UncleType) {
         card.spawn(TextBundle::from_section(
             uncle_type.ability(),
             TextStyle {
-                font_size: 11.0,
+                font_size: 10.0,
                 color: Color::srgb(0.796, 0.835, 0.882),
                 ..default()
             },
