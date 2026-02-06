@@ -35,9 +35,10 @@ pub fn update_day_night_ui(
         text.sections[0].value = format!("Day {}", cycle.day_number);
     }
 
-    // Update time of day
+    // Update time of day with color
     if let Ok(mut text) = time_text_q.get_single_mut() {
-        text.sections[0].value = format!("{} {}", cycle.time_emoji(), cycle.time_string());
+        text.sections[0].value = format!("{} | {}", cycle.time_of_day_text(), cycle.time_string());
+        text.sections[0].style.color = cycle.time_of_day_color();
     }
 
     // Update cashouts remaining
