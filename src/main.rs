@@ -27,8 +27,7 @@ fn main() {
         .add_systems(Startup, tilemap::generate_tilemap)
         // Update systems - Gameplay
         .add_systems(Update, (
-            gameplay::handle_uncle_placement,
-            gameplay::handle_uncle_selection_world,
+            gameplay::handle_uncle_placement,  // Handles both placement AND selection
             gameplay::uncle_fishing_system,
             gameplay::fish_escape_system,
             gameplay::cash_out_selected_uncle,
