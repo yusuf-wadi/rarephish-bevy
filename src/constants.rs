@@ -12,13 +12,13 @@ pub const MULTIPLIER_INCREMENT: f32 = 0.1;
 pub const MAX_MULTIPLIER: f32 = 5.0;
 
 // Day/Night Cycle
-pub const DAY_LENGTH_SECONDS: f32 = 120.0;  // 2 minutes per full day
+pub const DAY_LENGTH_SECONDS: f32 = 120.0;  // 2 minutes per full day cycle
 pub const DAY_START_TIME: f32 = 0.25;       // Day starts at 25% (6 AM equivalent)
 pub const NIGHT_START_TIME: f32 = 0.75;     // Night starts at 75% (6 PM equivalent)
 
 // Cash-out economy
 pub const STARTING_CASHOUTS_PER_DAY: u32 = 1;      // Begin with only 1 cash-out per day
-pub const CASHOUT_COOLDOWN_SECONDS: f32 = 5.0;     // Small cooldown between cashouts (prevents spam)
+pub const CASH_OUT_COOLDOWN: f32 = 5.0;            // 5 second cooldown between cashouts (prevents spam)
 
 // Fish rarity probabilities (before bonuses)
 pub const RARE_CHANCE: f32 = 0.05;      // 5%
