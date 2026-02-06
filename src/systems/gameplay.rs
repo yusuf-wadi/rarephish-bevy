@@ -3,7 +3,7 @@ use bevy::window::PrimaryWindow;
 use rand::Rng;
 use crate::components::{Tile, TileType, Uncle, UncleType, FishRarity, Fish, UncleBasket, SelectedUncleMarker};
 use crate::constants::*;
-use crate::resources::{GameState, WorldSeed, SelectedUncle};
+use crate::resources::{GameState, WorldSeed, SelectedUncle, DayNightCycle};
 
 /// Helper function to check if a tile position is near water
 fn is_tile_near_water(x: usize, y: usize, tiles_q: &Query<(Entity, &Tile, &Transform)>) -> bool {
@@ -279,17 +279,52 @@ pub fn fish_escape_system(
     }
 }
 
+/// Day/Night cycle system - progresses time and triggers new days
+pub fn day_night_cycle_system(
+    mut day_night: ResMut<DayNightCycle>,
+    time: Res<Time>,
+) {
+    day_night.time_elapsed += time.delta_seconds();
+
+    // Calculate progress through day (0.0 to 1.0)
+    day_night.day_progress = (day_night.time_elapsed / DAY_LENGTH_SECONDS) % 1.0;
+
+    // Check if new day started
+    if day_night.time_elapsed >= DAY_LENGTH_SECONDS {
+        day_night.time_elapsed = 0.0;
+        day_night.new_day();
+    }
+
+    // Update day/night state
+    let was_day = day_night.is_day;
+    day_night.is_day = day_night.is_daytime();
+
+    // Transition events (for future sound/visual effects)
+    if !was_day && day_night.is_day {
+        // Sunrise!
+    } else if was_day && !day_night.is_day {
+        // Sunset!
+    }
+}
+
 /// Cash out selected uncle's basket
 pub fn cash_out_selected_uncle(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut uncles_q: Query<&mut Uncle, With<SelectedUncleMarker>>,
     mut game_state: ResMut<GameState>,
+    mut day_night: ResMut<DayNightCycle>,
 ) {
     if !keyboard.just_pressed(KeyCode::Space) {
         return;
     }
 
+    // Check cooldown
     if game_state.cash_out_cooldown > 0.0 {
+        return;
+    }
+
+    // Check daily limit
+    if day_night.cashouts_remaining == 0 {
         return;
     }
 
@@ -308,7 +343,8 @@ pub fn cash_out_selected_uncle(
         uncle.basket.cash_out();
 
         game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
-        game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
+        game_state.cash_out_cooldown = CASHOUT_COOLDOWN_SECONDS;
+        day_night.cashouts_remaining -= 1;
         break; // Only cash out one uncle
     }
 }
@@ -318,13 +354,20 @@ pub fn cash_out_all_uncles(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut uncles_q: Query<&mut Uncle>,
     mut game_state: ResMut<GameState>,
+    mut day_night: ResMut<DayNightCycle>,
 ) {
     // Must press A key to trigger
     if !keyboard.just_pressed(KeyCode::KeyA) {
         return;
     }
 
+    // Check cooldown
     if game_state.cash_out_cooldown > 0.0 {
+        return;
+    }
+
+    // Check daily limit
+    if day_night.cashouts_remaining == 0 {
         return;
     }
 
@@ -345,7 +388,8 @@ pub fn cash_out_all_uncles(
         game_state.gold += gold_earned;
         game_state.fish_count += total_fish;
         game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
-        game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
+        game_state.cash_out_cooldown = CASHOUT_COOLDOWN_SECONDS;
+        day_night.cashouts_remaining -= 1;
     }
 }
 
