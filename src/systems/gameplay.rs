@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use rand::Rng;
-use crate::components::{Tile, TileType, Uncle, UncleType, FishRarity, Fish};
+use crate::components::{Tile, TileType, Uncle, UncleType, FishRarity, Fish, UncleBasket, SelectedUncleMarker};
 use crate::constants::*;
 use crate::resources::{GameState, WorldSeed, SelectedUncle};
 
@@ -40,6 +40,8 @@ fn spawn_uncle(
     tile_y: usize,
 ) {
     let speed_ms = uncle_type.speed_ms();
+    let basket_capacity = uncle_type.basket_capacity();
+    
     let uncle = Uncle {
         uncle_type,
         x: tile_x,
@@ -48,11 +50,10 @@ fn spawn_uncle(
             speed_ms as f32 / 1000.0,
             TimerMode::Repeating,
         ),
+        basket: UncleBasket::new(basket_capacity),
     };
 
-    // Check if we have an asset path, otherwise use fallback
     if let Some(asset_path) = uncle_type.asset_path() {
-        // Load sprite from assets folder
         commands.spawn((
             uncle,
             SpriteBundle {
@@ -66,7 +67,6 @@ fn spawn_uncle(
             },
         ));
     } else {
-        // Fallback: colored square with letter overlay
         let uncle_entity = commands.spawn((
             uncle,
             SpriteBundle {
@@ -80,7 +80,6 @@ fn spawn_uncle(
             },
         )).id();
 
-        // Add letter text as child entity
         commands.entity(uncle_entity).with_children(|parent| {
             parent.spawn(Text2dBundle {
                 text: Text::from_section(
@@ -98,17 +97,18 @@ fn spawn_uncle(
     }
 }
 
-/// Handles mouse clicks for placing uncles on tiles
+/// Handles mouse clicks for placing uncles OR selecting placed uncles
 pub fn handle_uncle_placement(
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window, With<PrimaryWindow>>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     tiles_q: Query<(Entity, &Tile, &Transform)>,
-    uncles_q: Query<&Uncle>,
+    uncles_q: Query<(Entity, &Uncle, &Transform), Without<Tile>>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut game_state: ResMut<GameState>,
     selected_uncle: Res<SelectedUncle>,
+    selected_marker_q: Query<Entity, With<SelectedUncleMarker>>,
 ) {
     if !mouse_button.just_pressed(MouseButton::Left) {
         return;
@@ -118,9 +118,29 @@ pub fn handle_uncle_placement(
     let (camera, camera_transform) = camera_q.single();
 
     if let Some(cursor_position) = window.cursor_position() {
-        // Convert screen position to world position
         if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
-            // Find clicked tile
+            // First check if clicking an existing uncle
+            for (uncle_entity, _uncle, uncle_transform) in uncles_q.iter() {
+                let uncle_pos = uncle_transform.translation.truncate();
+                let half_size = UNCLE_SPRITE_SIZE / 2.0;
+
+                if world_pos.x >= uncle_pos.x - half_size
+                    && world_pos.x <= uncle_pos.x + half_size
+                    && world_pos.y >= uncle_pos.y - half_size
+                    && world_pos.y <= uncle_pos.y + half_size
+                {
+                    // Clicked an uncle! Select it
+                    // Remove previous selection marker
+                    for entity in selected_marker_q.iter() {
+                        commands.entity(entity).remove::<SelectedUncleMarker>();
+                    }
+                    // Add marker to this uncle
+                    commands.entity(uncle_entity).insert(SelectedUncleMarker);
+                    return;
+                }
+            }
+
+            // Not clicking uncle, try to place new one
             for (_tile_entity, tile, tile_transform) in tiles_q.iter() {
                 let tile_pos = tile_transform.translation.truncate();
                 let half_size = TILE_SIZE / 2.0;
@@ -130,29 +150,24 @@ pub fn handle_uncle_placement(
                     && world_pos.y >= tile_pos.y - half_size
                     && world_pos.y <= tile_pos.y + half_size
                 {
-                    // Check placement validity
                     if tile.tile_type != TileType::Land {
-                        return; // Can only place on land
+                        return;
                     }
 
-                    // Check if tile is already occupied
-                    let is_occupied = uncles_q.iter().any(|u| u.x == tile.x && u.y == tile.y);
+                    let is_occupied = uncles_q.iter().any(|(_, u, _)| u.x == tile.x && u.y == tile.y);
                     if is_occupied {
                         return;
                     }
 
-                    // Check if near water
                     if !is_tile_near_water(tile.x, tile.y, &tiles_q) {
                         return;
                     }
 
-                    // Check gold cost
                     let cost = selected_uncle.uncle_type.cost();
                     if game_state.gold < cost {
                         return;
                     }
 
-                    // Place uncle
                     game_state.gold -= cost;
                     spawn_uncle(
                         &mut commands,
@@ -163,7 +178,6 @@ pub fn handle_uncle_placement(
                         tile.x,
                         tile.y,
                     );
-
                     return;
                 }
             }
@@ -171,32 +185,35 @@ pub fn handle_uncle_placement(
     }
 }
 
-/// Updates fishing timers and generates fish when timers complete
+/// Updates fishing timers and adds fish to individual uncle baskets
 pub fn uncle_fishing_system(
     mut uncles_q: Query<&mut Uncle>,
-    mut game_state: ResMut<GameState>,
     mut world_seed: ResMut<WorldSeed>,
     time: Res<Time>,
 ) {
     for mut uncle in uncles_q.iter_mut() {
+        // Skip if basket is full
+        if uncle.basket.is_full() {
+            continue;
+        }
+
         uncle.fishing_timer.tick(time.delta());
 
         if uncle.fishing_timer.just_finished() {
-            // Generate a fish
-            generate_fish(&mut game_state, &mut world_seed, uncle.uncle_type);
+            // Generate a fish and add to uncle's basket
+            let fish = generate_fish(&mut world_seed, uncle.uncle_type);
+            uncle.basket.add_fish(fish);
         }
     }
 }
 
-/// Generates a fish with random attributes based on rarity
+/// Generates a fish with random attributes
 fn generate_fish(
-    game_state: &mut GameState,
     world_seed: &mut WorldSeed,
     uncle_type: UncleType,
-) {
+) -> Fish {
     let rng = &mut world_seed.rng;
 
-    // Determine rarity with uncle bonus
     let rare_threshold = RARE_CHANCE + uncle_type.rare_bonus();
     let uncommon_threshold = rare_threshold + UNCOMMON_CHANCE;
 
@@ -209,106 +226,121 @@ fn generate_fish(
         FishRarity::Common
     };
 
-    // Generate fish name
     let color = FISH_COLORS[rng.gen_range(0..FISH_COLORS.len())];
     let pattern = FISH_PATTERNS[rng.gen_range(0..FISH_PATTERNS.len())];
     let shape = FISH_SHAPES[rng.gen_range(0..FISH_SHAPES.len())];
     let name = format!("{} {} {}fish", color, pattern, shape);
 
-    // Determine value based on rarity
     let value = match rarity {
         FishRarity::Common => rng.gen_range(COMMON_VALUE_MIN..=COMMON_VALUE_MAX),
         FishRarity::Uncommon => rng.gen_range(UNCOMMON_VALUE_MIN..=UNCOMMON_VALUE_MAX),
         FishRarity::Rare => rng.gen_range(RARE_VALUE_MIN..=RARE_VALUE_MAX),
     };
 
-    // Create fish with physics-based escape state
-    let fish = Fish {
+    Fish {
         name,
         rarity,
         value,
         time_alive: 0.0,
         failed_escape_attempts: 0,
         caught_by_uncle: uncle_type,
-    };
-
-    game_state.current_catch.push(fish);
+    }
 }
 
-/// Physics-based fish escape system using biased random walk model
-/// Models fish flopping with metabolic phases and decreasing success per failed attempt
+/// Fish escape system now works on individual uncle baskets
 pub fn fish_escape_system(
-    mut game_state: ResMut<GameState>,
+    mut uncles_q: Query<&mut Uncle>,
     mut world_seed: ResMut<WorldSeed>,
     time: Res<Time>,
 ) {
     let rng = &mut world_seed.rng;
     let delta = time.delta_seconds();
-    let mut escaped_indices = Vec::new();
 
-    // Update each fish's time and check for escape
-    for (i, fish) in game_state.current_catch.iter_mut().enumerate() {
-        // Update time alive
-        fish.time_alive += delta;
+    for mut uncle in uncles_q.iter_mut() {
+        let mut escaped_indices = Vec::new();
 
-        // Calculate escape chance using biased random walk model
-        let escape_chance_per_second = fish.calculate_escape_chance();
-        
-        // Convert per-second probability to per-frame probability
-        // Using: P(frame) = 1 - (1 - P(second))^(delta)
-        // Approximation for small probabilities: P(frame) ≈ P(second) * delta
-        let escape_chance_this_frame = escape_chance_per_second * delta;
+        // Check each fish in this uncle's basket
+        for (i, fish) in uncle.basket.fish.iter_mut().enumerate() {
+            fish.time_alive += delta;
+            let escape_chance_per_second = fish.calculate_escape_chance();
+            let escape_chance_this_frame = escape_chance_per_second * delta;
 
-        // Roll for escape
-        if rng.gen::<f32>() < escape_chance_this_frame {
-            // Fish successfully escapes!
-            escaped_indices.push(i);
-        } else {
-            // Failed escape attempt - fish moved wrong direction or fatigued
-            fish.failed_escape_attempts += 1;
+            if rng.gen::<f32>() < escape_chance_this_frame {
+                escaped_indices.push(i);
+            } else {
+                fish.failed_escape_attempts += 1;
+            }
         }
-    }
 
-    // Remove escaped fish (reverse order to maintain indices)
-    for &i in escaped_indices.iter().rev() {
-        game_state.current_catch.remove(i);
+        // Remove escaped fish
+        for &i in escaped_indices.iter().rev() {
+            uncle.basket.fish.remove(i);
+        }
     }
 }
 
-/// Handles cash out action when cooldown is zero
-pub fn cash_out_system(
+/// Cash out selected uncle's basket
+pub fn cash_out_selected_uncle(
     keyboard: Res<ButtonInput<KeyCode>>,
+    mut uncles_q: Query<&mut Uncle, With<SelectedUncleMarker>>,
     mut game_state: ResMut<GameState>,
 ) {
-    // Check if Space key pressed
     if !keyboard.just_pressed(KeyCode::Space) {
         return;
     }
 
-    // Check cooldown
     if game_state.cash_out_cooldown > 0.0 {
         return;
     }
 
-    // Must have fish to cash out
-    if game_state.current_catch.is_empty() {
+    // Cash out the selected uncle
+    for mut uncle in uncles_q.iter_mut() {
+        if uncle.basket.fish.is_empty() {
+            continue;
+        }
+
+        let total_value = uncle.basket.total_value();
+        let gold_earned = (total_value as f32 * game_state.multiplier) as u32;
+        let fish_count = uncle.basket.fish.len() as u32;
+
+        game_state.gold += gold_earned;
+        game_state.fish_count += fish_count;
+        uncle.basket.cash_out();
+
+        game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
+        game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
+        break; // Only cash out one uncle
+    }
+}
+
+/// Cash out ALL uncles at once
+pub fn cash_out_all_uncles(
+    mut uncles_q: Query<&mut Uncle>,
+    mut game_state: ResMut<GameState>,
+) {
+    if game_state.cash_out_cooldown > 0.0 {
         return;
     }
 
-    // Calculate total value with multiplier
-    let total_value: u32 = game_state.current_catch.iter().map(|f| f.value).sum();
-    let gold_earned = (total_value as f32 * game_state.multiplier) as u32;
+    let mut total_gold = 0;
+    let mut total_fish = 0;
 
-    // Update game state
-    game_state.gold += gold_earned;
-    game_state.fish_count += game_state.current_catch.len() as u32;
-    game_state.current_catch.clear();
+    for mut uncle in uncles_q.iter_mut() {
+        if !uncle.basket.fish.is_empty() {
+            let value = uncle.basket.total_value();
+            total_gold += value;
+            total_fish += uncle.basket.fish.len() as u32;
+            uncle.basket.cash_out();
+        }
+    }
 
-    // Increase multiplier
-    game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
-
-    // Set cooldown
-    game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
+    if total_fish > 0 {
+        let gold_earned = (total_gold as f32 * game_state.multiplier) as u32;
+        game_state.gold += gold_earned;
+        game_state.fish_count += total_fish;
+        game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
+        game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
+    }
 }
 
 /// Updates the cash out cooldown timer
