@@ -308,35 +308,6 @@ pub fn remove_fish_from_basket(
     }
 }
 
-/// Day/Night cycle system - progresses time and triggers new days
-pub fn day_night_cycle_system(
-    mut day_night: ResMut<DayNightCycle>,
-    time: Res<Time>,
-) {
-    day_night.time_elapsed += time.delta_seconds();
-
-    // Calculate progress through day (0.0 to 1.0)
-    day_night.day_progress = (day_night.time_elapsed / DAY_LENGTH_SECONDS) % 1.0;
-
-    // Check if new day started
-    if day_night.time_elapsed >= DAY_LENGTH_SECONDS {
-        day_night.time_elapsed = 0.0;
-        day_night.new_day();
-        println!("☀️ Day {} begins! Cash-outs refreshed: {}", day_night.day_number, day_night.cashouts_remaining);
-    }
-
-    // Update day/night state
-    let was_day = day_night.is_day;
-    day_night.is_day = day_night.is_daytime();
-
-    // Transition events
-    if !was_day && day_night.is_day {
-        println!("🌅 Dawn - daytime begins");
-    } else if was_day && !day_night.is_day {
-        println!("🌆 Dusk - nighttime begins");
-    }
-}
-
 /// Cash out selected uncle's basket
 pub fn cash_out_selected_uncle(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -374,7 +345,7 @@ pub fn cash_out_selected_uncle(
         uncle.basket.cash_out();
 
         game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
-        game_state.cash_out_cooldown = CASHOUT_COOLDOWN_SECONDS;
+        game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
         day_night.cashouts_remaining -= 1;
         
         println!("💰 Cashed out {} fish for {}g! Remaining: {}/{}", 
@@ -423,7 +394,7 @@ pub fn cash_out_all_uncles(
         game_state.gold += gold_earned;
         game_state.fish_count += total_fish;
         game_state.multiplier = (game_state.multiplier + MULTIPLIER_INCREMENT).min(MAX_MULTIPLIER);
-        game_state.cash_out_cooldown = CASHOUT_COOLDOWN_SECONDS;
+        game_state.cash_out_cooldown = CASH_OUT_COOLDOWN;
         day_night.cashouts_remaining -= 1;
         
         println!("💰 Cashed out ALL: {} fish for {}g! Remaining: {}/{}", 

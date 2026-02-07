@@ -140,6 +140,72 @@ pub fn setup_ui(mut commands: Commands) {
                         MultiplierText,
                     ));
                 });
+
+                // Day number
+                stats.spawn(NodeBundle {
+                    style: Style {
+                        column_gap: Val::Px(5.0),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|stat| {
+                    stat.spawn((
+                        TextBundle::from_section(
+                            "Day 1",
+                            TextStyle {
+                                font_size: 18.0,
+                                color: Color::srgb(0.945, 0.961, 0.973),
+                                ..default()
+                            },
+                        ),
+                        DayNumberText,
+                    ));
+                });
+
+                // Time of day
+                stats.spawn(NodeBundle {
+                    style: Style {
+                        column_gap: Val::Px(5.0),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|stat| {
+                    stat.spawn((
+                        TextBundle::from_section(
+                            "Morning | 06:00 AM",
+                            TextStyle {
+                                font_size: 18.0,
+                                color: Color::srgb(1.0, 0.8, 0.4),
+                                ..default()
+                            },
+                        ),
+                        TimeOfDayText,
+                    ));
+                });
+
+                // Cashouts remaining
+                stats.spawn(NodeBundle {
+                    style: Style {
+                        column_gap: Val::Px(5.0),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|stat| {
+                    stat.spawn((
+                        TextBundle::from_section(
+                            "Cashouts: 1/1",
+                            TextStyle {
+                                font_size: 18.0,
+                                color: Color::srgb(0.13, 0.77, 0.37),
+                                ..default()
+                            },
+                        ),
+                        CashoutsRemainingText,
+                    ));
+                });
             });
 
             // Seed display
