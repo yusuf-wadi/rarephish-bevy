@@ -5,21 +5,30 @@ use crate::constants::*;
 
 /// Updates the day/night cycle progression
 pub fn day_night_cycle_system(
-    mut cycle: ResMut<DayNightCycle>,
+    mut day_night: ResMut<DayNightCycle>,
     time: Res<Time>,
 ) {
-    cycle.time_elapsed += time.delta_seconds();
+    day_night.time_elapsed += time.delta_seconds();
 
-    // Calculate day progress (0.0 to 1.0)
-    cycle.day_progress = (cycle.time_elapsed % DAY_LENGTH_SECONDS) / DAY_LENGTH_SECONDS;
+    // Calculate progress through day (0.0 to 1.0)
+    day_night.day_progress = (day_night.time_elapsed / DAY_LENGTH_SECONDS) % 1.0;
 
-    // Check if we passed midnight (new day)
-    let was_day = cycle.is_day;
-    cycle.is_day = cycle.is_daytime();
+    // Check if new day started
+    if day_night.time_elapsed >= DAY_LENGTH_SECONDS {
+        day_night.time_elapsed = 0.0;
+        day_night.new_day();
+        println!("☀️ Day {} begins! Cash-outs refreshed: {}", day_night.day_number, day_night.cashouts_remaining);
+    }
 
-    // New day trigger: when we transition from night to day
-    if !was_day && cycle.is_day && cycle.time_elapsed > DAY_LENGTH_SECONDS {
-        cycle.new_day();
+    // Update day/night state
+    let was_day = day_night.is_day;
+    day_night.is_day = day_night.is_daytime();
+
+    // Transition events
+    if !was_day && day_night.is_day {
+        println!("🌅 Dawn - daytime begins");
+    } else if was_day && !day_night.is_day {
+        println!("🌆 Dusk - nighttime begins");
     }
 }
 

@@ -35,7 +35,7 @@ fn main() {
             gameplay::cash_out_selected_uncle,
             gameplay::cash_out_all_uncles,
             gameplay::cooldown_update_system,
-            gameplay::day_night_cycle_system,   // NEW: Time progression
+            day_night::day_night_cycle_system,   // NEW: Time progression
         ))
         // Update systems - UI
         .add_systems(Update, (
